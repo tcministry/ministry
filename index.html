@@ -28,6 +28,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--navy);color:var(--cr
 .form-wrap{max-width:600px;margin:0 auto;padding:0 16px 60px;}
 .section-card{background:var(--navy-card);border:1px solid var(--border-card);border-radius:16px;padding:28px 24px;margin-bottom:16px;}
 .section-label{font-size:10px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;font-weight:500;margin-bottom:18px;opacity:.7;}
+.section-label .sub{color:var(--muted-2);text-transform:none;letter-spacing:0;font-size:11px;opacity:1;margin-left:6px;}
 .field-group{display:grid;gap:14px;}
 .field-group-2{grid-template-columns:1fr 1fr;}
 .field{display:flex;flex-direction:column;gap:6px;}
@@ -165,18 +166,19 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--navy);color:var(--cr
               </select></div>
               <div class="other-input" id="otherPastorWrap"><input type="text" id="otherPastor" placeholder="請填寫牧區名稱"></div>
             </div>
+            <div class="field"><label>小組</label><input type="text" id="group" placeholder="小組名稱"></div>
+          </div>
+          <div class="field-group field-group-2">
             <div class="field"><label>年齡</label>
               <div class="select-wrap"><select id="age"><option value="">選擇年齡</option></select></div>
             </div>
-          </div>
-          <div class="field-group field-group-2">
             <div class="field"><label>學校</label><input type="text" id="school" placeholder="就讀學校"></div>
-            <div class="field"><label>科系 <span class="optional">（選填）</span></label><input type="text" id="dept" placeholder="科系名稱"></div>
           </div>
+          <div class="field"><label>科系 <span class="optional">（選填）</span></label><input type="text" id="dept" placeholder="科系名稱"></div>
         </div>
       </div>
       <div class="section-card">
-        <div class="section-label">目前參與的服事</div>
+        <div class="section-label">目前參與的服事<span class="sub">（若無則不需點選）</span></div>
         <p class="chips-label">可複選，點選你目前有參與的服事項目</p>
         <div class="chips" id="currentChips"></div>
       </div>
@@ -288,19 +290,20 @@ function submitForm(){
   const name=document.getElementById('name').value.trim();
   const pastorEl=document.getElementById('pastor');
   let pastor=pastorEl.value==='other'?document.getElementById('otherPastor').value.trim():pastorEl.value;
+  const group=document.getElementById('group').value.trim();
   const age=document.getElementById('age').value;
   const school=document.getElementById('school').value.trim();
   const dept=document.getElementById('dept').value.trim();
-  if(!name||!pastor||!age||!school){showToast('請填寫姓名、牧區、年齡、學校');return;}
+  if(!name||!pastor||!group||!age||!school){showToast('請填寫姓名、牧區、小組、年齡、學校');return;}
   loadRecords();
-  allRecords.push({id:Date.now(),submittedAt:new Date().toLocaleString('zh-TW'),name,pastor,age,school,dept,current:[...currentSel],want:[...wantSel],invite:1,contact:0});
+  allRecords.push({id:Date.now(),submittedAt:new Date().toLocaleString('zh-TW'),name,pastor,group,age,school,dept,current:[...currentSel],want:[...wantSel],invite:1,contact:0});
   saveRecords();
   document.getElementById('mainForm').style.display='none';
   document.getElementById('successView').classList.add('show');
 }
 
 function resetForm(){
-  ['name','otherPastor','school','dept'].forEach(id=>document.getElementById(id).value='');
+  ['name','otherPastor','group','school','dept'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pastor').value='';document.getElementById('age').value='';
   document.getElementById('otherPastorWrap').classList.remove('show');
   currentSel.clear();wantSel.clear();
@@ -373,7 +376,7 @@ function renderRecords(){
       <div class="record-top">
         <div>
           <div class="record-name">${r.name}</div>
-          <div class="record-meta">${r.pastor} 牧區・${r.age} 歲・${r.school}${r.dept?'・'+r.dept:''}<br><span style="color:var(--muted-2);font-size:11px">${r.submittedAt}</span></div>
+          <div class="record-meta">${r.pastor} 牧區・${r.group} 小組・${r.age} 歲・${r.school}${r.dept?'・'+r.dept:''}<br><span style="color:var(--muted-2);font-size:11px">${r.submittedAt}</span></div>
         </div>
         <div class="status-group">
           <select class="status-select inv${r.invite}" onchange="updateStatus(${r.id},'invite',this)">
@@ -439,14 +442,14 @@ function renderMinistryStats(){
 function exportExcel(){
   if(allRecords.length===0){showToast('尚無資料可匯出');return;}
   const rows=allRecords.map(r=>({
-    '填表時間':r.submittedAt,'姓名':r.name,'牧區':r.pastor,'年齡':r.age,
+    '填表時間':r.submittedAt,'姓名':r.name,'牧區':r.pastor,'小組':r.group,'年齡':r.age,
     '學校':r.school,'科系':r.dept||'',
     '邀請狀態':r.invite===1?'可邀請':'不可邀請',
     '聯繫狀態':r.contact===1?'已聯繫':'未聯繫',
     '目前參與服事':r.current.join('、'),'想加入服事':r.want.join('、')
   }));
   const ws=XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:18},{wch:10},{wch:8},{wch:6},{wch:14},{wch:14},{wch:10},{wch:10},{wch:55},{wch:55}];
+  ws['!cols']=[{wch:18},{wch:10},{wch:10},{wch:10},{wch:6},{wch:14},{wch:14},{wch:10},{wch:10},{wch:55},{wch:55}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'服事登記');
   XLSX.writeFile(wb,'學生服事登記.xlsx');
